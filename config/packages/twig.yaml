@@ -1,2 +1,4 @@
 twig:
+    globals:
+        yandex_metrica_id: '%env(YANDEX_METRICA_ID)%'
     default_path: '%kernel.project_dir%/templates'
