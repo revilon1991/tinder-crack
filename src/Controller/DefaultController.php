@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,10 +15,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class DefaultController extends AbstractController
 {
-    private const ACCOUNT_KIT_TOKEN = 'AA%7C464891386855067%7Cd1891abb4b0bcdfa0580d9b839f4a522';
-    private const ACCOUNT_KIT_START_LOGIN_URL = 'https://graph.accountkit.com/v1.3/start_login';
-    private const ACCOUNT_KIT_CONFIRM_LOGIN_URL = 'https://graph.accountkit.com/v1.3/confirm_login';
-    private const TINDER_CONFIRM_LOGIN_URL = 'https://api.gotinder.com/v2/auth/login/accountkit';
+    private const ACCOUNT_KIT_TOKEN = 'EAAGm0PX4ZCpsBAKBmYB2t9ZBi7we4ZA2LKZC9g3Q4Id2LDQKb0ZAZBRBeVLgDNLimTubyjVQVgMo6egTXl48LZBX0fTKTtvlL6AbQbhzkL8NShbZASmMZBlZABGLHHixwCQX7cEHRZByZCJnljnlaIhzeKjZB3PTvGrklZBqwgRm5zVPKVhSaHEDa3ZAHd1lx1QCcd7ZBXAOLyXTGcE2io6ZCYDNKNZAUPVk6ZABwpNKhXd1Kxq90oCCAZDZD';
+    private const ACCOUNT_KIT_START_LOGIN_URL = 'https://api.gotinder.com/v2/auth/sms/send';
+    private const ACCOUNT_KIT_CONFIRM_LOGIN_URL = 'https://api.gotinder.com/v2/auth/sms/validate';
+    private const TINDER_CONFIRM_LOGIN_URL = 'https://api.gotinder.com/v2/auth/login/sms';
     private const TINDER_MATCH_TEASERS = 'https://api.gotinder.com/v2/fast-match/teasers';
 
     /**
@@ -72,22 +73,43 @@ class DefaultController extends AbstractController
      *
      * @param Request $request
      *
+     * @param LoggerInterface $logger
+     *
      * @return JsonResponse
      */
-    public function accountKitStartLogin(Request $request): JsonResponse
+    public function accountKitStartLogin(Request $request, LoggerInterface $logger): JsonResponse
     {
         $phoneNumber = preg_replace('#\D#', '', $request->get('phone_number'));
 
         $client = new Client();
 
+        $body = sprintf(
+            '{"phone_number":"%s","attempted_facebook_token":"%s"}',
+            $phoneNumber,
+            self::ACCOUNT_KIT_TOKEN
+        );
+
         $response = $client->post(self::ACCOUNT_KIT_START_LOGIN_URL, [
+            RequestOptions::HTTP_ERRORS => false,
+            RequestOptions::HEADERS => [
+                'Content-Type' => 'application/json',
+            ],
             RequestOptions::QUERY => [
-                'access_token' => self::ACCOUNT_KIT_TOKEN,
-                'credentials_type' => 'phone_number',
-                'response_type' => 'token',
-                'phone_number' => $phoneNumber,
-            ]
+                'auth_type' => 'sms',
+            ],
+            RequestOptions::BODY => $body,
+
         ]);
+
+        if ($response->getStatusCode() !== Response::HTTP_OK) {
+            $logger->error(sprintf(
+                'Error on %s: %s',
+                self::ACCOUNT_KIT_START_LOGIN_URL,
+                $response->getBody()->getContents()
+            ));
+
+            throw new \RuntimeException('Error ' . self::ACCOUNT_KIT_START_LOGIN_URL);
+        }
 
         $data = json_decode($response->getBody()->getContents(), true);
         $loginRequestCode = $data['login_request_code'];
@@ -109,30 +131,38 @@ class DefaultController extends AbstractController
     {
         $client = new Client();
 
+        $body = sprintf(
+            '{"phone_number":"%s","otp_code":"%s","attempted_facebook_token":"%s"}',
+            $request->get('phone_number'),
+            $request->get('confirmation_code'),
+            self::ACCOUNT_KIT_TOKEN
+        );
+
         // account kit auth
         $response = $client->post(self::ACCOUNT_KIT_CONFIRM_LOGIN_URL, [
             RequestOptions::QUERY => [
-                'access_token' => self::ACCOUNT_KIT_TOKEN,
-                'confirmation_code' => $request->get('confirmation_code'),
-                'credentials_type' => 'phone_number',
-                'login_request_code' => $request->get('login_request_code'),
-                'phone_number' => $request->get('phone_number'),
-            ]
+                'auth_type' => 'sms',
+            ],
+            RequestOptions::HEADERS => [
+                'Content-Type' => 'application/json',
+            ],
+            RequestOptions::BODY => $body,
         ]);
 
         $data = json_decode($response->getBody()->getContents(), true);
-        $confirmLoginAccessToken = $data['access_token'];
-        $confirmLoginId = $data['id'];
+        $refreshToken = $data['data']['refresh_token'];
 
-        // tinder auth
+//        // tinder auth
         $body = sprintf(
-            '{"token":"%s","client_version":"11.4.0","id":"%s"}',
-            $confirmLoginAccessToken,
-            $confirmLoginId
+            '{"refresh_token":"%s","client_version":"11.4.0"}',
+            $refreshToken
         );
 
         $response = $client->post(self::TINDER_CONFIRM_LOGIN_URL, [
             RequestOptions::BODY => $body,
+            RequestOptions::HEADERS => [
+                'Content-Type' => 'application/json',
+            ],
         ]);
 
         $data = json_decode($response->getBody()->getContents(), true);

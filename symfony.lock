@@ -26,6 +26,9 @@
     "guzzlehttp/psr7": {
         "version": "1.6.1"
     },
+    "monolog/monolog": {
+        "version": "2.0.1"
+    },
     "php": {
         "version": "7.2"
     },
@@ -134,6 +137,23 @@
     },
     "symfony/mime": {
         "version": "v5.0.0"
+    },
+    "symfony/monolog-bridge": {
+        "version": "v5.0.1"
+    },
+    "symfony/monolog-bundle": {
+        "version": "3.3",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "master",
+            "version": "3.3",
+            "ref": "6240c6d43e8237a32452f057f81816820fd56ab6"
+        },
+        "files": [
+            "config/packages/dev/monolog.yaml",
+            "config/packages/prod/monolog.yaml",
+            "config/packages/test/monolog.yaml"
+        ]
     },
     "symfony/polyfill-intl-idn": {
         "version": "v1.13.1"

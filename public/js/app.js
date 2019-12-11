@@ -36,7 +36,8 @@ jQuery(function ($) {
     account_kit_start_login_form.submit(function (e) {
         e.preventDefault();
 
-        account_kit_start_login_form.find('button[type=submit]').addClass('disabled').attr('disabled', 'disabled');
+        account_kit_start_login_form.find('.btn-send-phone-text').hide();
+        account_kit_start_login_form.find('.btn-send-phone-text-load').show();
 
         $.ajax({
             type: 'GET',
@@ -48,31 +49,52 @@ jQuery(function ($) {
                 login_request_code = data['login_request_code'];
                 phone_number = data['phone_number'];
 
+                account_kit_start_login_form.find('.btn-send-phone-text').show();
+                account_kit_start_login_form.find('.btn-send-phone-text-load').hide();
                 account_kit_start_login_form.fadeOut('slow', function () {
                     account_kit_start_confirm_login.show().fadeIn('slow');
                 });
+            },
+            error: function () {
+                noty({
+                    type: 'error',
+                    text: 'Ошибка. Попробуйте позже'
+                }).show();
+
+                account_kit_start_login_form.find('.btn-send-phone-text').show();
+                account_kit_start_login_form.find('.btn-send-phone-text-load').hide();
             }
         });
+    });
 
-        account_kit_start_confirm_login.submit(function (e) {
-            e.preventDefault();
+    account_kit_start_confirm_login.submit(function (e) {
+        e.preventDefault();
 
-            account_kit_start_confirm_login.find('button[type=submit]').addClass('disabled').attr('disabled', 'disabled');
+        account_kit_start_confirm_login.find('.btn-send-sms-text').hide();
+        account_kit_start_confirm_login.find('.btn-send-phone-sms-load').show();
 
-            $.ajax({
-                type: 'GET',
-                url: account_kit_start_confirm_login.attr('action'),
-                data: {
-                    'confirmation_code': account_kit_start_confirm_login.find('input[name=sms_code]').val(),
-                    'login_request_code': login_request_code,
-                    'phone_number': phone_number,
-                },
-                success: function (data) {
-                    Cookies.set('api_token', data['api_token']);
-                    Cookies.set('refresh_token', data['refresh_token']);
-                    window.location = '/';
-                }
-            });
+        $.ajax({
+            type: 'GET',
+            url: account_kit_start_confirm_login.attr('action'),
+            data: {
+                'confirmation_code': account_kit_start_confirm_login.find('input[name=sms_code]').val(),
+                'login_request_code': login_request_code,
+                'phone_number': phone_number,
+            },
+            success: function (data) {
+                Cookies.set('api_token', data['api_token']);
+                Cookies.set('refresh_token', data['refresh_token']);
+                window.location = '/';
+            },
+            error: function () {
+                noty({
+                    type: 'error',
+                    text: 'Ошибка. Попробуйте позже'
+                }).show();
+
+                account_kit_start_confirm_login.find('.btn-send-sms-text').show();
+                account_kit_start_confirm_login.find('.btn-send-phone-sms-load').hide();
+            }
         });
     });
 });
