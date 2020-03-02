@@ -13,13 +13,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+use function GuzzleHttp\json_decode;
+
 class DefaultController extends AbstractController
 {
-    private const ACCOUNT_KIT_TOKEN = 'EAAGm0PX4ZCpsBAKBmYB2t9ZBi7we4ZA2LKZC9g3Q4Id2LDQKb0ZAZBRBeVLgDNLimTubyjVQVgMo6egTXl48LZBX0fTKTtvlL6AbQbhzkL8NShbZASmMZBlZABGLHHixwCQX7cEHRZByZCJnljnlaIhzeKjZB3PTvGrklZBqwgRm5zVPKVhSaHEDa3ZAHd1lx1QCcd7ZBXAOLyXTGcE2io6ZCYDNKNZAUPVk6ZABwpNKhXd1Kxq90oCCAZDZD';
     private const ACCOUNT_KIT_START_LOGIN_URL = 'https://api.gotinder.com/v2/auth/sms/send';
     private const ACCOUNT_KIT_CONFIRM_LOGIN_URL = 'https://api.gotinder.com/v2/auth/sms/validate';
     private const TINDER_CONFIRM_LOGIN_URL = 'https://api.gotinder.com/v2/auth/login/sms';
     private const TINDER_MATCH_TEASERS = 'https://api.gotinder.com/v2/fast-match/teasers';
+    private const TINDER_ADMIRER_MATCH = 'https://api.gotinder.com/v2/fast-match/secret-admirer/rate';
+    private const TINDER_ADMIRER_REVEAL = 'https://api.gotinder.com/v2/fast-match/secret-admirer';
 
     /**
      * @Route(path="/")
@@ -33,7 +36,7 @@ class DefaultController extends AbstractController
         $apiToken = $request->cookies->get('api_token');
 
         if ($apiToken) {
-            $photoList = [];
+            $userList = [];
             $client = new Client();
 
             $response = $client->get(self::TINDER_MATCH_TEASERS, [
@@ -42,6 +45,7 @@ class DefaultController extends AbstractController
                 ],
                 RequestOptions::HTTP_ERRORS => false,
             ]);
+            $data = json_decode($response->getBody()->getContents(), true);
 
             if ($response->getStatusCode() !== Response::HTTP_OK) {
                 return $this->render('index.html.twig', [
@@ -49,17 +53,30 @@ class DefaultController extends AbstractController
                 ]);
             }
 
-            $data = json_decode($response->getBody()->getContents(), true);
-
             foreach ($data['data']['results'] as $result) {
                 foreach ($result['user']['photos'] as $photo) {
-                    $photoList[] = $photo['url'];
+                    $uid = $result['user']['_id'];
+
+                    $userList[$uid] = [
+                        'photoUrl' => $photo['url'],
+                    ];
                 }
             }
 
+            $response = $client->get(self::TINDER_ADMIRER_REVEAL, [
+                RequestOptions::HTTP_ERRORS => false,
+                RequestOptions::HEADERS => [
+                    'X-Auth-Token' => $apiToken,
+                ],
+            ]);
+            $dataAdmirer = $response->getBody()->getContents();
+            $dataAdmirer = \json_decode($dataAdmirer, true);
+            $admirerAvailableMatch = $dataAdmirer['data']['results'][0]['user']['_id'] ?? null;
+
             return $this->render('index.html.twig', [
-                'photo_list' => $photoList,
+                'user_list' => $userList,
                 'auth_block' => false,
+                'admirerMatchUid' => $admirerAvailableMatch,
             ]);
         }
 
@@ -84,9 +101,8 @@ class DefaultController extends AbstractController
         $client = new Client();
 
         $body = sprintf(
-            '{"phone_number":"%s","attempted_facebook_token":"%s"}',
-            $phoneNumber,
-            self::ACCOUNT_KIT_TOKEN
+            '{"phone_number":"%s"}',
+            $phoneNumber
         );
 
         $response = $client->post(self::ACCOUNT_KIT_START_LOGIN_URL, [
@@ -111,11 +127,7 @@ class DefaultController extends AbstractController
             throw new \RuntimeException('Error ' . self::ACCOUNT_KIT_START_LOGIN_URL);
         }
 
-        $data = json_decode($response->getBody()->getContents(), true);
-        $loginRequestCode = $data['login_request_code'];
-
         return new JsonResponse([
-            'login_request_code' => $loginRequestCode,
             'phone_number' => $phoneNumber,
         ]);
     }
@@ -132,10 +144,9 @@ class DefaultController extends AbstractController
         $client = new Client();
 
         $body = sprintf(
-            '{"phone_number":"%s","otp_code":"%s","attempted_facebook_token":"%s"}',
+            '{"phone_number":"%s","otp_code":"%s"}',
             $request->get('phone_number'),
-            $request->get('confirmation_code'),
-            self::ACCOUNT_KIT_TOKEN
+            $request->get('confirmation_code')
         );
 
         // account kit auth
@@ -188,8 +199,9 @@ class DefaultController extends AbstractController
         $client = new Client();
 
         $response = $client->post(self::TINDER_MATCH_TEASERS, [
-            RequestOptions::QUERY => [
+            RequestOptions::HEADERS => [
                 'X-Auth-Token' => $request->get('api_token'),
+                'Content-Type' => 'application/json',
             ],
         ]);
 
@@ -206,5 +218,65 @@ class DefaultController extends AbstractController
         return new JsonResponse([
             'photo_list' => $photoList,
         ]);
+    }
+
+    /**
+     * @Route(path="/tinder/goMatch", methods={"POST"})
+     *
+     * @param Request $request
+     * @param LoggerInterface $logger
+     *
+     * @return JsonResponse
+     */
+    public function tinderGoMatch(Request $request, LoggerInterface $logger): JsonResponse
+    {
+        $client = new Client();
+
+        $body = sprintf(
+            '{"uid":"%s","type":"like"}',
+            $request->get('uid')
+        );
+
+        $response = $client->post(self::TINDER_ADMIRER_MATCH, [
+            RequestOptions::HTTP_ERRORS => false,
+            RequestOptions::BODY => $body,
+            RequestOptions::HEADERS => [
+                'X-Auth-Token' => $request->get('api_token'),
+            ],
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        switch (true) {
+            case $response->getStatusCode() === Response::HTTP_OK:
+                return new JsonResponse([
+                    'message' => 'Успех. Ищите этого человека у себя в парах',
+                ]);
+
+            case !empty($data['err']['data']['next_available_game']):
+                $response = $client->get(self::TINDER_ADMIRER_REVEAL, [
+                    RequestOptions::HTTP_ERRORS => false,
+                    RequestOptions::HEADERS => [
+                        'X-Auth-Token' => $request->get('api_token'),
+                    ],
+                ]);
+
+                $data = json_decode($response->getBody()->getContents(), true);
+                $nextAvailableGame = (string)$data['err']['data']['next_available_game'];
+                $nextAvailableGame = (int)substr($nextAvailableGame, 0, 10);
+
+                return new JsonResponse([
+                    'message' => 'Следующий матч возможен: ' . date('d.m.Y H:i:s', $nextAvailableGame),
+                ]);
+
+            default:
+                $logger->error('Error parse response tinder go match', [
+                    'response' => $response->getBody()->getContents(),
+                    'code' => $response->getStatusCode(),
+                    'body' => $body,
+                ]);
+
+                throw new \RuntimeException('Error ' . self::TINDER_ADMIRER_MATCH);
+        }
     }
 }

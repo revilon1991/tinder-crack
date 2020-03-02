@@ -97,4 +97,27 @@ jQuery(function ($) {
             }
         });
     });
+
+    $('.button-match').click(function () {
+        $.ajax({
+            type: 'POST',
+            url: '/tinder/goMatch',
+            data: {
+                'uid': $(this).data('uid'),
+                'api_token': window.Cookies.get('api_token')
+            },
+            success: function (data) {
+                noty({
+                    type: 'success',
+                    text: data['message']
+                }).show();
+            },
+            error: function () {
+                noty({
+                    type: 'error',
+                    text: 'Ошибка. Попробуйте позже'
+                }).show();
+            }
+        });
+    });
 });
