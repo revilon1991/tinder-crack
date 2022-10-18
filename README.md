@@ -1,3 +1,5 @@
+> :thumbsup: **This vulnerability was be fixed**: Good job tinder team!
+
 # Tinder Crack
 
 #### This experimental research application Tinder
